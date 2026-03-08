@@ -1,0 +1,36 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Dashboard</title>
+</head>
+<body>
+
+<h1>Dashboard</h1>
+
+<div>
+
+    <h2>Organizer actions</h2>
+
+    <a href="/quiz/create">Create quiz</a>
+
+</div>
+
+<div>
+
+    <h2>Join quiz</h2>
+
+    <a href="/session/join">Join by code</a>
+
+</div>
+
+<div>
+
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Logout</button>
+    </form>
+
+</div>
+
+</body>
+</html>

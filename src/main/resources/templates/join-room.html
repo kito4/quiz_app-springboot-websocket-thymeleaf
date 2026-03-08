@@ -1,0 +1,25 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Join Quiz</title>
+</head>
+<body>
+
+<h1>Join Quiz</h1>
+
+<form action="/session/join" method="post">
+
+    <div>
+        <label>Room Code</label>
+        <input name="code"/>
+    </div>
+
+    <button type="submit">Join</button>
+
+</form>
+
+<p th:if="${error}" th:text="${error}"></p>
+
+</body>
+</html>

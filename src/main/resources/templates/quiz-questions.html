@@ -1,0 +1,62 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Questions</title>
+</head>
+<body>
+
+<h1>Questions</h1>
+
+<h2>Add Question</h2>
+
+<form th:action="@{'/quiz/' + ${quizId} + '/question'}" method="post">
+
+    <div>
+        <label>Question text</label>
+        <input name="text"/>
+    </div>
+
+    <div>
+        <label>Image URL</label>
+        <input name="imageUrl"/>
+    </div>
+
+    <div>
+        <label>Type</label>
+        <select name="type">
+            <option value="SINGLE">Single choice</option>
+            <option value="MULTIPLE">Multiple choice</option>
+        </select>
+    </div>
+
+    <h3>Answers</h3>
+
+    <div>
+        <input name="answers"/>
+        <input name="answers"/>
+        <input name="answers"/>
+        <input name="answers"/>
+    </div>
+
+    <div>
+        <label>Correct answer index (0-3)</label>
+        <input name="correctIndex"/>
+    </div>
+
+    <button type="submit">Add question</button>
+
+</form>
+
+<hr>
+
+<h2>Existing Questions</h2>
+
+<ul>
+    <li th:each="q : ${questions}">
+        <span th:text="${q.text}"></span>
+    </li>
+</ul>
+
+</body>
+</html>
