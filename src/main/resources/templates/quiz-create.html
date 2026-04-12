@@ -3,26 +3,40 @@
 <head>
     <meta charset="utf-8">
     <title>Create Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 font-sans">
 
-<h1>Create Quiz</h1>
+<header class="bg-purple-600 text-white p-4 shadow-md">
+    <h1 class="text-2xl font-bold">Create Quiz</h1>
+</header>
 
-<form action="/quiz" method="post">
+<main class="max-w-md mx-auto mt-10">
 
-    <div>
-        <label>Title</label>
-        <input name="title"/>
-    </div>
+    <section class="bg-white p-6 rounded-lg shadow-md">
+        <form action="/quiz" method="post" class="space-y-4">
 
-    <div>
-        <label>Category</label>
-        <input name="category"/>
-    </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-2">Title</label>
+                <input name="title" placeholder="Quiz title"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"/>
+            </div>
 
-    <button type="submit">Create</button>
+            <div>
+                <label class="block text-gray-700 font-medium mb-2">Category</label>
+                <input name="category" placeholder="Quiz category"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"/>
+            </div>
 
-</form>
+            <button type="submit"
+                    class="w-full bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
+                Create
+            </button>
+
+        </form>
+    </section>
+
+</main>
 
 </body>
 </html>

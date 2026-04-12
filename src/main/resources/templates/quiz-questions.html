@@ -3,60 +3,80 @@
 <head>
     <meta charset="utf-8">
     <title>Questions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 font-sans">
 
-<h1>Questions</h1>
+<header class="bg-indigo-600 text-white p-4 shadow-md">
+    <h1 class="text-2xl font-bold">Questions</h1>
+</header>
 
-<h2>Add Question</h2>
+<main class="max-w-3xl mx-auto mt-8 space-y-6">
 
-<form th:action="@{'/quiz/' + ${quizId} + '/question'}" method="post">
+    <!-- Add Question -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Add Question</h2>
+        <form th:action="@{'/quiz/' + ${quizId} + '/question'}" method="post" class="space-y-4">
 
-    <div>
-        <label>Question text</label>
-        <input name="text"/>
-    </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Question text</label>
+                <input name="text" placeholder="Enter question text"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
 
-    <div>
-        <label>Image URL</label>
-        <input name="imageUrl"/>
-    </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Image URL</label>
+                <input name="imageUrl" placeholder="Optional image URL"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
 
-    <div>
-        <label>Type</label>
-        <select name="type">
-            <option value="SINGLE">Single choice</option>
-            <option value="MULTIPLE">Multiple choice</option>
-        </select>
-    </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Type</label>
+                <select name="type"
+                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="SINGLE">Single choice</option>
+                    <option value="MULTIPLE">Multiple choice</option>
+                </select>
+            </div>
 
-    <h3>Answers</h3>
+            <h3 class="text-lg font-semibold mt-4">Answers</h3>
+            <div class="grid grid-cols-1 gap-2">
+                <input name="answers" placeholder="Answer 1"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <input name="answers" placeholder="Answer 2"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <input name="answers" placeholder="Answer 3"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <input name="answers" placeholder="Answer 4"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
 
-    <div>
-        <input name="answers"/>
-        <input name="answers"/>
-        <input name="answers"/>
-        <input name="answers"/>
-    </div>
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Correct answer index (0-3)</label>
+                <input name="correctIndex" placeholder="0-3"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
 
-    <div>
-        <label>Correct answer index (0-3)</label>
-        <input name="correctIndex"/>
-    </div>
+            <button type="submit"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+                Add question
+            </button>
 
-    <button type="submit">Add question</button>
+        </form>
+    </section>
 
-</form>
+    <!-- Existing Questions -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Existing Questions</h2>
+        <ul class="list-disc pl-5 space-y-2">
+            <li th:each="q : ${questions}">
+                <span class="font-medium" th:text="${q.text}"></span>
+                <span th:if="${q.imageUrl}" class="text-gray-500 text-sm">(<a th:href="${q.imageUrl}" target="_blank">image</a>)</span>
+            </li>
+        </ul>
+    </section>
 
-<hr>
-
-<h2>Existing Questions</h2>
-
-<ul>
-    <li th:each="q : ${questions}">
-        <span th:text="${q.text}"></span>
-    </li>
-</ul>
+</main>
 
 </body>
 </html>
