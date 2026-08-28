@@ -1,82 +1,104 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Questions</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Вопросы квиза — Quiz App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-<header class="bg-indigo-600 text-white p-4 shadow-md">
-    <h1 class="text-2xl font-bold">Questions</h1>
+<header class="topbar">
+    <div class="logo">Quiz App</div>
+    <div class="user"><a th:href="@{/dashboard}" href="/dashboard" style="color:#fff">В кабинет</a></div>
 </header>
 
-<main class="max-w-3xl mx-auto mt-8 space-y-6">
+<main class="container">
+    <div class="card">
+        <div class="row">
+            <h2 class="mt0" th:text="'Квиз: ' + ${quiz.title}">Квиз</h2>
+            <span class="spacer"></span>
+            <span class="muted" th:text="'Категория: ' + ${quiz.category} + ' · ' + ${quiz.timeLimitSeconds} + ' сек на вопрос'"></span>
+        </div>
+    </div>
 
-    <!-- Add Question -->
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Add Question</h2>
-        <form th:action="@{'/quiz/' + ${quizId} + '/question'}" method="post" class="space-y-4">
+    <div class="grid-2">
+        <div class="card">
+            <h3>Добавить вопрос</h3>
+            <form th:action="@{'/quiz/' + ${quiz.id} + '/question'}" method="post" enctype="multipart/form-data">
+                <label class="field">
+                    <span>Текст вопроса</span>
+                    <textarea name="text" rows="2" placeholder="Введите вопрос" required></textarea>
+                </label>
 
-            <div>
-                <label class="block text-gray-700 font-medium mb-1">Question text</label>
-                <input name="text" placeholder="Enter question text"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <label class="field">
+                    <span>Тип вопроса</span>
+                    <select name="type" id="typeSelect" onchange="toggleCorrectMode()">
+                        <option value="SINGLE">Одиночный выбор (один правильный)</option>
+                        <option value="MULTIPLE">Множественный выбор (несколько правильных)</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <span>Изображение (файл)</span>
+                    <input type="file" name="imageFile" accept="image/*"/>
+                </label>
+                <label class="field">
+                    <span>…или ссылка на изображение</span>
+                    <input type="url" name="imageUrl" placeholder="https://..."/>
+                </label>
+
+                <h3 style="margin-top:20px">Варианты ответа</h3>
+                <p class="muted" id="correctHint">Отметьте один правильный ответ.</p>
+
+                <div id="answersBlock">
+                    <label class="answer-option" style="margin-bottom:8px" th:each="i : ${#numbers.sequence(0, 3)}">
+                        <input type="checkbox" name="correctIndexes" th:value="${i}"/>
+                        <input type="text" name="answers" th:placeholder="'Вариант ' + (${i} + 1)" style="border:none;background:transparent;padding:0"/>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn block" style="margin-top:14px">Добавить вопрос</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3 th:text="'Вопросы (' + ${#lists.size(questions)} + ')'">Вопросы</h3>
+            <div th:if="${#lists.isEmpty(questions)}" class="muted">Пока нет вопросов.</div>
+            <div th:each="q, st : ${questions}" style="border-bottom:1px solid var(--border); padding:10px 0">
+                <div class="row">
+                    <strong th:text="(${st.index} + 1) + '. '">1.</strong>
+                    <span th:text="${q.text}">Вопрос</span>
+                </div>
+                <div class="muted" style="margin:4px 0 4px 22px">
+                    <span th:text="${q.type == 'MULTIPLE'} ? 'множественный выбор' : 'одиночный выбор'">тип</span>
+                    <span th:if="${q.imageUrl}"> · <a th:href="${q.imageUrl}" target="_blank">изображение</a></span>
+                </div>
+                <form th:action="@{'/quiz/' + ${quiz.id} + '/question/' + ${q.id} + '/delete'}"
+                      method="post" style="margin:0 0 0 22px"
+                      onsubmit="return confirm('Удалить вопрос?')">
+                    <button type="submit" class="btn small red">Удалить</button>
+                </form>
             </div>
 
-            <div>
-                <label class="block text-gray-700 font-medium mb-1">Image URL</label>
-                <input name="imageUrl" placeholder="Optional image URL"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium mb-1">Type</label>
-                <select name="type"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="SINGLE">Single choice</option>
-                    <option value="MULTIPLE">Multiple choice</option>
-                </select>
-            </div>
-
-            <h3 class="text-lg font-semibold mt-4">Answers</h3>
-            <div class="grid grid-cols-1 gap-2">
-                <input name="answers" placeholder="Answer 1"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-                <input name="answers" placeholder="Answer 2"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-                <input name="answers" placeholder="Answer 3"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-                <input name="answers" placeholder="Answer 4"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium mb-1">Correct answer index (0-3)</label>
-                <input name="correctIndex" placeholder="0-3"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
-            </div>
-
-            <button type="submit"
-                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
-                Add question
-            </button>
-
-        </form>
-    </section>
-
-    <!-- Existing Questions -->
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Existing Questions</h2>
-        <ul class="list-disc pl-5 space-y-2">
-            <li th:each="q : ${questions}">
-                <span class="font-medium" th:text="${q.text}"></span>
-                <span th:if="${q.imageUrl}" class="text-gray-500 text-sm">(<a th:href="${q.imageUrl}" target="_blank">image</a>)</span>
-            </li>
-        </ul>
-    </section>
-
+            <form th:action="@{'/session/start/' + ${quiz.id}}" method="post" style="margin-top:18px">
+                <button type="submit" class="btn green block" th:disabled="${#lists.isEmpty(questions)}">
+                    Запустить квиз
+                </button>
+            </form>
+        </div>
+    </div>
 </main>
+
+<script>
+    function toggleCorrectMode() {
+        const type = document.getElementById('typeSelect').value;
+        document.getElementById('correctHint').innerText =
+            type === 'MULTIPLE'
+                ? 'Отметьте все правильные ответы.'
+                : 'Отметьте один правильный ответ.';
+    }
+</script>
 
 </body>
 </html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Пульт организатора — Quiz App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
+    <script th:src="@{/js/websocket.js}" src="/js/websocket.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="logo">Quiz App — пульт организатора</div>
+    <div class="user"><a th:href="@{/dashboard}" href="/dashboard" style="color:#fff">В кабинет</a></div>
+</header>
+
+<main class="container">
+
+    <div class="card center">
+        <p class="muted" style="margin:0">Код комнаты для участников</p>
+        <div class="room-code" th:text="${quizSession.roomCode}">ABC123</div>
+        <p class="muted" th:text="'Квиз: ' + ${quiz.title} + ' · вопросов: ' + ${#lists.size(questions)}">Квиз</p>
+        <p>
+            <span class="badge" id="statusBadge"
+                  th:classappend="'status-' + ${quizSession.status}"
+                  th:text="${quizSession.status}">CREATED</span>
+            <span class="muted" style="margin-left:12px">Участников: <strong id="participantCount">0</strong></span>
+        </p>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h3>Управление</h3>
+            <p class="muted" id="currentQuestionInfo">Вопрос ещё не показан.</p>
+
+            <div class="row" style="margin-top:14px">
+                <button type="button" id="nextBtn" class="btn green" onclick="nextQuestion()">
+                    Показать следующий вопрос
+                </button>
+                <button type="button" id="endBtn" class="btn red" onclick="endQuiz()">
+                    Завершить квиз
+                </button>
+            </div>
+            <p class="muted" id="controlFeedback" style="margin-top:10px"></p>
+
+            <div id="finishedBlock" style="display:none">
+                <div class="alert ok">Квиз завершён. Финальный лидерборд отправлен участникам.</div>
+                <a th:href="@{/dashboard}" href="/dashboard" class="btn">Вернуться в кабинет</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Лидерборд (обновляется в реальном времени)</h3>
+            <div id="leaderboard"><p class="muted">Пока никто не ответил.</p></div>
+        </div>
+    </div>
+
+</main>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const sessionId = /*[[${quizSession.id}]]*/ 0;
+    const roomCode = /*[[${quizSession.roomCode}]]*/ 'ROOM';
+    const totalQuestions = /*[[${#lists.size(questions)}]]*/ 0;
+
+    let finished = /*[[${quizSession.status == 'FINISHED'}]]*/ false;
+
+    QuizSocket.connect(function (client) {
+        client.subscribe('/topic/session/' + roomCode + '/question', function (message) {
+            const q = JSON.parse(message.body);
+            document.getElementById('currentQuestionInfo').innerText =
+                'Сейчас показан вопрос ' + q.index + ' / ' + q.total + ': «' + q.text + '»';
+            if (q.index >= totalQuestions) {
+                document.getElementById('nextBtn').innerText = 'Вопросы закончились';
+                document.getElementById('nextBtn').disabled = true;
+            }
+        });
+        client.subscribe('/topic/session/' + roomCode + '/leaderboard', function (message) {
+            renderLeaderboard(JSON.parse(message.body));
+        });
+        client.subscribe('/topic/session/' + roomCode + '/joined', function (message) {
+            const data = JSON.parse(message.body);
+            document.getElementById('participantCount').innerText = data.count;
+        });
+        client.subscribe('/topic/session/' + roomCode + '/status', function (message) {
+            const st = JSON.parse(message.body);
+            const badge = document.getElementById('statusBadge');
+            badge.innerText = st.status;
+            badge.className = 'badge status-' + st.status;
+            if (st.status === 'FINISHED') markFinished();
+        });
+    });
+
+    fetch('/api/session/' + encodeURIComponent(roomCode) + '/state')
+        .then(r => r.json())
+        .then(state => {
+            if (state.leaderboard) renderLeaderboard(state.leaderboard);
+        })
+        .catch(() => {});
+
+    if (finished) markFinished();
+
+    async function nextQuestion() {
+        const btn = document.getElementById('nextBtn');
+        btn.disabled = true;
+        try {
+            const res = await fetch('/session/' + sessionId + '/next', {method: 'POST'});
+            const data = await res.json();
+            if (!res.ok) {
+                document.getElementById('controlFeedback').innerText = data.error || 'Ошибка';
+                btn.disabled = false;
+            } else {
+                document.getElementById('controlFeedback').innerText =
+                    'Вопрос ' + data.index + ' / ' + data.total + ' показан участникам';
+                btn.disabled = data.index >= data.total;
+                if (btn.disabled) btn.innerText = 'Вопросы закончились';
+            }
+        } catch (e) {
+            document.getElementById('controlFeedback').innerText = 'Ошибка сети';
+            btn.disabled = false;
+        }
+    }
+
+    async function endQuiz() {
+        if (!confirm('Завершить квиз? Участники увидят финальный лидерборд.')) return;
+        const res = await fetch('/session/' + sessionId + '/end', {method: 'POST'});
+        if (res.ok) markFinished();
+    }
+
+    function markFinished() {
+        finished = true;
+        document.getElementById('finishedBlock').style.display = 'block';
+        document.getElementById('nextBtn').disabled = true;
+        document.getElementById('endBtn').disabled = true;
+    }
+
+    function renderLeaderboard(list) {
+        const div = document.getElementById('leaderboard');
+        if (!list || list.length === 0) {
+            div.innerHTML = '<p class="muted">Пока никто не ответил.</p>';
+            return;
+        }
+        div.innerHTML = '';
+        list.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item' + (p.rank === 1 ? ' top1' : '');
+            item.innerHTML =
+                '<span class="rank">' + p.rank + '</span>' +
+                '<span class="name"></span>' +
+                '<span class="score">' + p.score + '</span>';
+            item.querySelector('.name').textContent = p.username;
+            div.appendChild(item);
+        });
+    }
+    /*]]>*/
+</script>
+
+</body>
+</html>

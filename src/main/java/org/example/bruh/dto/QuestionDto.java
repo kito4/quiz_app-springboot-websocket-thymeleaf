@@ -1,72 +1,49 @@
 package org.example.bruh.dto;
 
-import lombok.Data;
-
 import java.util.List;
 
-@Data
+
 public class QuestionDto {
     private Long id;
     private String text;
     private String imageUrl;
-    private String type; // SINGLE / MULTIPLE
+    private String type;
+    private Integer index;
+    private Integer total;
+    private Integer timeLimitSeconds;
     private List<AnswerDto> answers;
-    private Integer timeLimitSeconds; // optional per-question timer
 
-    // getters / setters
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getText() { return text; }
+    public void setText(String text) { this.text = text; }
 
-    public String getText() {
-        return text;
-    }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public void setText(String text) {
-        this.text = text;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
+    public Integer getIndex() { return index; }
+    public void setIndex(Integer index) { this.index = index; }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
+    public Integer getTotal() { return total; }
+    public void setTotal(Integer total) { this.total = total; }
 
-    public String getType() {
-        return type;
-    }
+    public Integer getTimeLimitSeconds() { return timeLimitSeconds; }
+    public void setTimeLimitSeconds(Integer timeLimitSeconds) { this.timeLimitSeconds = timeLimitSeconds; }
 
-    public void setType(String type) {
-        this.type = type;
-    }
+    public List<AnswerDto> getAnswers() { return answers; }
+    public void setAnswers(List<AnswerDto> answers) { this.answers = answers; }
 
-    public List<AnswerDto> getAnswers() {
-        return answers;
-    }
-
-    public void setAnswers(List<AnswerDto> answers) {
-        this.answers = answers;
-    }
-
-    public Integer getTimeLimitSeconds() {
-        return timeLimitSeconds;
-    }
-
-    public void setTimeLimitSeconds(Integer timeLimitSeconds) {
-        this.timeLimitSeconds = timeLimitSeconds;
-    }
     public static class AnswerDto {
         private Long id;
         private String text;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
+
         public String getText() { return text; }
         public void setText(String text) { this.text = text; }
     }

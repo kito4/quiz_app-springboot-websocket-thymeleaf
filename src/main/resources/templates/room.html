@@ -1,129 +1,223 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Quiz Room</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Комната — Quiz App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
+    <script th:src="@{/js/websocket.js}" src="/js/websocket.js"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-<header class="bg-indigo-600 text-white p-4 shadow-md">
-    <h1 class="text-2xl font-bold">Quiz Room — <span th:text="${roomCode}">ROOM</span></h1>
+<header class="topbar">
+    <div class="logo">Quiz App</div>
+    <div class="user">
+        <span th:text="'Комната ' + ${roomCode}">Комната</span>
+        <a th:href="@{/dashboard}" href="/dashboard" style="color:#fff">Выйти</a>
+    </div>
 </header>
 
-<main class="max-w-4xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+<main class="container">
+    <div class="grid-2">
+        <div class="card" id="questionCard">
+            <div class="row">
+                <span class="badge status-CREATED" id="questionCounter">Ожидание</span>
+                <span class="spacer"></span>
+                <span class="timer-pill" id="timerPill" style="display:none"><span id="timer">--</span></span>
+            </div>
 
-    <!-- Question block -->
-    <section class="md:col-span-2 bg-white p-6 rounded-lg shadow-md space-y-4">
-        <h2 class="text-xl font-semibold" id="question">Ожидание вопроса...</h2>
-        <div id="imageContainer" class="my-2"></div>
+            <h2 id="questionText" style="margin:16px 0 6px">Ожидание вопроса…</h2>
+            <p class="muted" id="quizTitle" th:text="${quizTitle}">Квиз</p>
 
-        <form id="answersForm" class="space-y-2">
-            <div id="answers" class="space-y-2"></div>
-            <button type="button" id="submitBtn"
-                    onclick="submitAnswer()"
-                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-                Отправить
-            </button>
-        </form>
+            <div id="imageContainer"></div>
 
-        <div class="mt-2 text-gray-700">
-            Осталось: <span id="timer" class="font-bold">--</span> сек
+            <div id="answers" style="display:grid; gap:10px; margin-top:14px"></div>
+
+            <div class="row" style="margin-top:16px">
+                <button type="button" id="submitBtn" class="btn green" onclick="submitAnswer()" disabled>
+                    Отправить ответ
+                </button>
+                <span id="feedback" class="muted"></span>
+            </div>
         </div>
-    </section>
 
-    <!-- Leaderboard -->
-    <aside class="bg-white p-6 rounded-lg shadow-md">
-        <h3 class="text-lg font-semibold mb-4">Текущий лидерборд</h3>
-        <ol id="leaderboard" class="list-decimal list-inside space-y-1 text-gray-800"></ol>
-    </aside>
-
+        <div class="card">
+            <h3>Лидерборд</h3>
+            <div id="leaderboard"><p class="muted">Пока никто не ответил.</p></div>
+        </div>
+    </div>
 </main>
 
-<script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
     const roomCode = /*[[${roomCode}]]*/ 'ROOM';
+
     let currentQuestionId = null;
-    let questionShownAt = null;
-    let timeLimit = 30;
+    let answered = false;
+    let timerInterval = null;
 
-    const sock = new SockJS('/ws');
-    const client = Stomp.over(sock);
-
-    client.connect({}, function () {
+    QuizSocket.connect(function (client) {
         client.subscribe('/topic/session/' + roomCode + '/question', function (message) {
-            const q = JSON.parse(message.body);
-            currentQuestionId = q.id;
-            questionShownAt = Date.now();
-            timeLimit = q.timeLimitSeconds || 30;
-
-            document.getElementById('question').innerText = q.text;
-
-            const imgC = document.getElementById('imageContainer');
-            imgC.innerHTML = q.imageUrl ? ('<img src="' + q.imageUrl + '" alt="qimg" class="max-w-full rounded"/>') : '';
-
-            const answersDiv = document.getElementById('answers');
-            answersDiv.innerHTML = '';
-            if (q.type === 'SINGLE') {
-                q.answers.forEach(a => {
-                    answersDiv.innerHTML += `<div class="flex items-center"><label><input type="radio" name="answer" value="${a.id}" class="mr-2"/> ${a.text}</label></div>`;
-                });
-            } else {
-                q.answers.forEach(a => {
-                    answersDiv.innerHTML += `<div class="flex items-center"><label><input type="checkbox" name="answer" value="${a.id}" class="mr-2"/> ${a.text}</label></div>`;
-                });
-            }
-
-            startTimer(timeLimit);
+            showQuestion(JSON.parse(message.body));
         });
-
         client.subscribe('/topic/session/' + roomCode + '/leaderboard', function (message) {
-            const lb = JSON.parse(message.body);
-            renderLeaderboard(lb);
+            renderLeaderboard(JSON.parse(message.body));
+        });
+        client.subscribe('/topic/session/' + roomCode + '/status', function (message) {
+            const st = JSON.parse(message.body);
+            if (st.status === 'FINISHED') {
+                showFinished();
+            }
         });
     });
 
+    fetch('/api/session/' + encodeURIComponent(roomCode) + '/state')
+        .then(r => r.json())
+        .then(state => {
+            if (state.status === 'FINISHED') {
+                showFinished();
+                renderLeaderboard(state.leaderboard || []);
+            } else if (state.question) {
+                showQuestion(state.question);
+            }
+            if (state.leaderboard) renderLeaderboard(state.leaderboard);
+        })
+        .catch(() => {});
+
+    function showQuestion(q) {
+        currentQuestionId = q.id;
+        answered = false;
+
+        document.getElementById('questionCounter').innerText = 'Вопрос ' + q.index + ' / ' + q.total;
+        document.getElementById('questionText').innerText = q.text;
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('submitBtn').disabled = false;
+
+        const imgC = document.getElementById('imageContainer');
+        imgC.innerHTML = q.imageUrl
+            ? '<img class="question-image" src="' + q.imageUrl + '" alt="изображение вопроса"/>'
+            : '';
+
+        const answersDiv = document.getElementById('answers');
+        answersDiv.innerHTML = '';
+        const inputType = q.type === 'MULTIPLE' ? 'checkbox' : 'radio';
+        (q.answers || []).forEach(a => {
+            const label = document.createElement('label');
+            label.className = 'answer-option';
+            const input = document.createElement('input');
+            input.type = inputType;
+            input.name = 'answer';
+            input.value = a.id;
+            input.addEventListener('change', () => {
+                if (inputType === 'radio') {
+                    answersDiv.querySelectorAll('.answer-option')
+                        .forEach(el => el.classList.remove('selected'));
+                }
+                label.classList.toggle('selected', input.checked);
+            });
+            const span = document.createElement('span');
+            span.textContent = a.text;
+            label.appendChild(input);
+            label.appendChild(span);
+            answersDiv.appendChild(label);
+        });
+
+        startTimer(q.timeLimitSeconds || 30);
+    }
+
     function startTimer(seconds) {
+        if (timerInterval) clearInterval(timerInterval);
         let remaining = seconds;
-        document.getElementById('timer').innerText = remaining;
-        const iv = setInterval(() => {
+        const pill = document.getElementById('timerPill');
+        const el = document.getElementById('timer');
+        pill.style.display = 'inline-flex';
+        el.innerText = remaining;
+        pill.classList.remove('low');
+        timerInterval = setInterval(() => {
             remaining--;
-            document.getElementById('timer').innerText = remaining;
+            el.innerText = Math.max(remaining, 0);
+            if (remaining <= 5) pill.classList.add('low');
             if (remaining <= 0) {
-                clearInterval(iv);
+                clearInterval(timerInterval);
+                lockQuestion('Время вышло');
             }
         }, 1000);
     }
 
-    async function submitAnswer() {
-        if (!currentQuestionId) return;
-        const checked = Array.from(document.querySelectorAll('#answers input:checked')).map(i => parseInt(i.value));
-        const payload = {
-            roomCode: roomCode,
-            questionId: currentQuestionId,
-            answerIds: checked,
-            answeredAt: Date.now()
-        };
+    function lockQuestion(message) {
+        answered = true;
+        document.getElementById('submitBtn').disabled = true;
+        document.querySelectorAll('#answers input').forEach(i => i.disabled = true);
+        if (message) document.getElementById('feedback').innerText = message;
+    }
 
-        const res = await fetch('/api/session/submit', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        alert('Получено очков: ' + data.points);
+    async function submitAnswer() {
+        if (!currentQuestionId || answered) return;
+        const checked = Array.from(document.querySelectorAll('#answers input:checked'))
+            .map(i => parseInt(i.value));
+        if (checked.length === 0) {
+            document.getElementById('feedback').innerText = 'Выберите хотя бы один вариант';
+            return;
+        }
+
+        document.getElementById('submitBtn').disabled = true;
+        try {
+            const res = await fetch('/api/session/submit', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    roomCode: roomCode,
+                    questionId: currentQuestionId,
+                    answerIds: checked
+                })
+            });
+            const data = await res.json();
+            if (!data.accepted) {
+                document.getElementById('feedback').innerText = data.reason || 'Ответ не принят';
+                document.getElementById('submitBtn').disabled = false;
+                return;
+            }
+            answered = true;
+            document.getElementById('feedback').innerText = data.correct
+                ? 'Верно! +' + data.points + ' очков (всего: ' + data.totalScore + ')'
+                : 'Неверно. Очков: 0 (всего: ' + data.totalScore + ')';
+            document.getElementById('feedback').style.color = data.correct ? '#059669' : '#dc2626';
+            document.getElementById('feedback').style.fontWeight = '700';
+        } catch (e) {
+            document.getElementById('feedback').innerText = 'Ошибка сети, попробуйте ещё раз';
+            document.getElementById('submitBtn').disabled = false;
+        }
     }
 
     function renderLeaderboard(list) {
-        const ol = document.getElementById('leaderboard');
-        ol.innerHTML = '';
+        const div = document.getElementById('leaderboard');
+        if (!list || list.length === 0) {
+            div.innerHTML = '<p class="muted">Пока никто не ответил.</p>';
+            return;
+        }
+        div.innerHTML = '';
         list.forEach(p => {
-            const li = document.createElement('li');
-            li.innerText = (p.userId ? ('User ' + p.userId) : 'User') + ' — ' + (p.score || 0);
-            ol.appendChild(li);
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item' + (p.rank === 1 ? ' top1' : '');
+            item.innerHTML =
+                '<span class="rank">' + p.rank + '</span>' +
+                '<span class="name"></span>' +
+                '<span class="score">' + p.score + '</span>';
+            item.querySelector('.name').textContent = p.username;
+            div.appendChild(item);
         });
     }
+
+    function showFinished() {
+        if (timerInterval) clearInterval(timerInterval);
+        document.getElementById('timerPill').style.display = 'none';
+        document.getElementById('questionCounter').innerText = 'Квиз завершён';
+        document.getElementById('questionText').innerText = 'Квиз завершён! Смотрите лидерборд справа.';
+        document.getElementById('answers').innerHTML = '';
+        document.getElementById('imageContainer').innerHTML = '';
+        document.getElementById('submitBtn').style.display = 'none';
+    }
+    /*]]>*/
 </script>
 
 </body>

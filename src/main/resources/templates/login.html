@@ -1,45 +1,41 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Вход — Quiz App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-<header class="bg-blue-600 text-white p-4 shadow-md">
-    <h1 class="text-2xl font-bold">Login</h1>
+<header class="topbar">
+    <div class="logo">Quiz App</div>
 </header>
 
-<main class="max-w-md mx-auto mt-10">
+<main class="container narrow">
+    <div class="card">
+        <h2>Вход</h2>
 
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <form th:action="@{/login}" method="post" class="space-y-4">
+        <div th:if="${param.registered}" class="alert ok">Регистрация успешна! Войдите в систему.</div>
+        <div th:if="${param.error}" class="alert error">Неверное имя пользователя или пароль</div>
+        <div th:if="${param.logout}" class="alert info">Вы вышли из системы</div>
 
-            <div>
-                <label class="block text-gray-700 font-medium mb-2">Username</label>
-                <input type="text" name="username"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium mb-2">Password</label>
-                <input type="password" name="password"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-            </div>
-
-            <button type="submit"
-                    class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                Login
-            </button>
-
-            <p class="text-gray-600 mt-2">
-                No account? <a href="/register" class="text-blue-600 hover:underline">Register</a>
-            </p>
-
+        <form th:action="@{/login}" method="post">
+            <label class="field">
+                <span>Имя пользователя</span>
+                <input type="text" name="username" required autofocus/>
+            </label>
+            <label class="field">
+                <span>Пароль</span>
+                <input type="password" name="password" required/>
+            </label>
+            <button type="submit" class="btn block">Войти</button>
         </form>
-    </section>
 
+        <p class="muted center" style="margin-top:16px">
+            Нет аккаунта? <a th:href="@{/register}" href="/register">Зарегистрироваться</a>
+        </p>
+    </div>
 </main>
 
 </body>

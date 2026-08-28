@@ -1,20 +1,11 @@
 package org.example.bruh.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
 
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "user_answer")
 public class UserAnswer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,7 +14,22 @@ public class UserAnswer {
 
     private Long questionId;
 
-    private Long answerId; // выбранный ответ (для множественных можно хранить несколько записей)
+    private Long answerId;
 
     private Long answeredAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getParticipantId() { return participantId; }
+    public void setParticipantId(Long participantId) { this.participantId = participantId; }
+
+    public Long getQuestionId() { return questionId; }
+    public void setQuestionId(Long questionId) { this.questionId = questionId; }
+
+    public Long getAnswerId() { return answerId; }
+    public void setAnswerId(Long answerId) { this.answerId = answerId; }
+
+    public Long getAnsweredAt() { return answeredAt; }
+    public void setAnsweredAt(Long answeredAt) { this.answeredAt = answeredAt; }
 }

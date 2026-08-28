@@ -1,17 +1,11 @@
 package org.example.bruh.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "answer")
 public class Answer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,4 +17,15 @@ public class Answer {
 
     private Boolean isCorrect;
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getQuestionId() { return questionId; }
+    public void setQuestionId(Long questionId) { this.questionId = questionId; }
+
+    public String getText() { return text; }
+    public void setText(String text) { this.text = text; }
+
+    public Boolean getIsCorrect() { return isCorrect; }
+    public void setIsCorrect(Boolean correct) { isCorrect = correct; }
 }

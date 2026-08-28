@@ -1,45 +1,121 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Личный кабинет — Quiz App</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-<header class="bg-blue-600 text-white p-4 shadow-md">
-    <h1 class="text-2xl font-bold">Dashboard</h1>
+<header class="topbar">
+    <div class="logo">Quiz App</div>
+    <div class="user">
+        <span th:text="${username}">user</span>
+        <span class="badge org" th:if="${organizer}">Организатор</span>
+        <span class="badge part" th:unless="${organizer}">Участник</span>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" class="btn small red">Выйти</button>
+        </form>
+    </div>
 </header>
 
-<main class="max-w-4xl mx-auto mt-8 space-y-6">
+<main class="container">
 
-    <!-- Organizer actions -->
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Organizer actions</h2>
-        <a href="/quiz/create"
-           class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-            Create quiz
-        </a>
-    </section>
+    <div th:if="${param.error}" class="alert error">
+        Нельзя запустить квиз без вопросов — сначала добавьте вопросы.
+    </div>
 
-    <!-- Join quiz -->
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Join quiz</h2>
-        <a href="/session/join"
-           class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-            Join by code
-        </a>
-    </section>
+    <div class="grid-2">
+        <div>
+            <div class="card" th:if="${organizer}">
+                <h2>Мои квизы</h2>
+                <p>
+                    <a th:href="@{/quiz/create}" href="/quiz/create" class="btn">+ Создать квиз</a>
+                </p>
+                <table class="list" th:if="${!quizzes.isEmpty()}">
+                    <thead>
+                    <tr><th>Название</th><th>Категория</th><th>Время, сек</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="q : ${quizzes}">
+                        <td th:text="${q.title}">Quiz</td>
+                        <td th:text="${q.category}">Cat</td>
+                        <td th:text="${q.timeLimitSeconds}">30</td>
+                        <td class="row" style="justify-content:flex-end">
+                            <a class="btn small ghost" th:href="@{'/quiz/' + ${q.id} + '/questions'}"
+                               href="/quiz/1/questions">Вопросы</a>
+                            <form th:action="@{'/session/start/' + ${q.id}}" method="post" style="margin:0">
+                                <button type="submit" class="btn small green">Запустить</button>
+                            </form>
+                            <form th:action="@{'/quiz/' + ${q.id} + '/delete'}" method="post" style="margin:0"
+                                  onsubmit="return confirm('Удалить квиз?')">
+                                <button type="submit" class="btn small red">Ð£Ð´Ð°Ð»Ð¸ÑÑ</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="muted" th:if="${quizzes.isEmpty()}">У вас пока нет квизов.</p>
+            </div>
 
-    <!-- Logout -->
-    <section class="bg-white p-6 rounded-lg shadow-md">
-        <form th:action="@{/logout}" method="post">
-            <button type="submit"
-                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                Logout
-            </button>
-        </form>
-    </section>
+            <div class="card">
+                <h2>Пройти квиз</h2>
+                <p class="muted">Введите код комнаты, который показал организатор.</p>
+                <a th:href="@{/session/join}" href="/session/join" class="btn green">Войти по коду</a>
+            </div>
+
+            <div class="card">
+                <h2>История участия</h2>
+                <table class="list" th:if="${!participations.isEmpty()}">
+                    <thead>
+                    <tr><th>Квиз</th><th>Комната</th><th>Дата</th><th>Статус</th><th>Очки</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${participations}">
+                        <td th:text="${p.quizTitle}">Quiz</td>
+                        <td th:text="${p.roomCode}">CODE</td>
+                        <td th:text="${p.date}">2026-01-01</td>
+                        <td><span class="badge" th:classappend="'status-' + ${p.status}" th:text="${p.status}">RUNNING</span></td>
+                        <td th:text="${p.score}">0</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="muted" th:if="${participations.isEmpty()}">Вы ещё не участвовали в квизах.</p>
+            </div>
+        </div>
+
+        <div>
+            <div class="card" th:if="${organizer}">
+                <h3>Проведённые квизы</h3>
+                <table class="list" th:if="${!hosted.isEmpty()}">
+                    <thead>
+                    <tr><th>Квиз</th><th>Код</th><th>Статус</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="h : ${hosted}">
+                        <td th:text="${h.quizTitle}">Quiz</td>
+                        <td th:text="${h.roomCode}">CODE</td>
+                        <td><span class="badge" th:classappend="'status-' + ${h.status}" th:text="${h.status}">FINISHED</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="muted" th:if="${hosted.isEmpty()}">Вы ещё не проводили квизы.</p>
+            </div>
+
+            <div class="card">
+                <h3>Как это работает</h3>
+                <p class="muted">
+                    1. Организатор создаёт квиз и добавляет вопросы.<br>
+                    2. Запускает квиз — появляется код комнаты.<br>
+                    3. Участники заходят по коду.<br>
+                    4. Вопросы показываются всем одновременно, отвечать можно
+                    только пока вопрос на экране.<br>
+                    5. В конце — общий лидерборд.
+                </p>
+            </div>
+        </div>
+    </div>
 
 </main>
 
